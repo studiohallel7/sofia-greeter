@@ -27,23 +27,3 @@ jobs:
         asset_name: web-greeter-$tag-ubuntu.deb
         tag: ${{ github.ref }}
         overwrite: true
-  publish-debian:
-    name: Publish debian binaries
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout local actions
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - name: Build web-greeter
-      uses: "./.github/actions/build"
-      with:
-       target-distro: debian
-    - name: Upload binaries to release
-      uses: svenstaro/upload-release-action@v2
-      with:
-        repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: build/web-greeter.deb
-        asset_name: web-greeter-$tag-debian.deb
-        tag: ${{ github.ref }}
-        overwrite: true
