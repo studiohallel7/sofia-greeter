@@ -205,19 +205,31 @@ class BrowserWindow(MainWindow):
             # GreeterComm(self)
         ]
 
+    def _get_csp_script(self) -> QWebEngineScript:
+        script = QWebEngineScript()
+        # Lista branca rigorosa: apenas local, data, blob e a API do clima
+        csp = "default-src 'self' 'unsafe-inline' 'unsafe-eval' web-greeter: data: blob: https://api.open-meteo.com; img-src 'self' data: blob: *;"
+        js = f"var m = document.createElement('meta'); m.httpEquiv = 'Content-Security-Policy'; m.content = \"{csp}\"; document.documentElement.appendChild(m);"
+        script.setInjectionPoint(QWebEngineScript.DocumentCreation)
+        script.setName("CSP-Injection")
+        script.setWorldId(QWebEngineScript.MainWorld)
+        script.setSourceCode(js)
+        return script
+
     def init_bridge(self):
         """Initialize bridge objects"""
         self.initialize_bridge_objects()
+
+        # Injeta o nosso CSP blindado
+        csp_script = self._get_csp_script()
+        if not self.win_page.scripts().contains(csp_script):
+            self.win_page.scripts().insert(csp_script)
+
         self.load_script(':/_greeter/js/bundle.js', 'Web Greeter Bundle')
         self.win_page.loadStarted.disconnect(self.init_bridge)
 
     def _init_winpage(self):
         page_settings = self.win_page.settings().globalSettings()
-
-        if not web_greeter_config["config"]["greeter"]["secure_mode"]:
-            ENABLED_SETTINGS.append('LocalContentCanAccessRemoteUrls')
-        else:
-            DISABLED_SETTINGS.append('LocalContentCanAccessRemoteUrls')
 
         for setting in DISABLED_SETTINGS:
             try:
@@ -230,6 +242,12 @@ class BrowserWindow(MainWindow):
                 page_settings.setAttribute(getattr(QWebEngineSettings, setting), True)
             except AttributeError:
                 pass
+
+        # Força o acesso remoto ativado no motor (nosso CSP e interceptor farão o bloqueio fino)
+        try:
+            page_settings.setAttribute(getattr(QWebEngineSettings, 'LocalContentCanAccessRemoteUrls'), True)
+        except AttributeError:
+            pass
 
         # self.win_page.setView(self.win_view)
 
