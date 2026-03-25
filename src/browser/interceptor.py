@@ -50,9 +50,13 @@ class QtUrlRequestInterceptor(QWebEngineUrlRequestInterceptor):
             and not url.startswith('devtools')
         )
 
+        # Liberando a porteira EXCLUSIVAMENTE pro Open-Meteo!
+        is_open_meteo = url.startswith('https://api.open-meteo.com')
+
         block_request = (
             not_devtools and not_data_uri and
-            not_webg_uri and not_local_file
+            not_webg_uri and not_local_file and
+            not is_open_meteo # Se for o open_meteo, isso vira False e ele não bloqueia
         )
 
         info.block(block_request) # Block everything that is not allowed
